@@ -86,8 +86,8 @@ function findArrayOfContainer(container: any, keys: Array<any>) {
 
 export function arrayGroupBy<T>(
   source: Array<T>,
-  indexKey: ((t: T) => any),
-  valueKey: ((t: T) => any)  = (t: T) => t,
+  indexKey: (t: T) => any,
+  valueKey: (t: T) => any = (t: T) => t,
   valuesFilter: ((value: any, index: number, array: any[]) => void) | undefined = undefined
 ): Record<any, Array<any>> {
   const result: Record<any, Array<any>> = {};
@@ -95,7 +95,7 @@ export function arrayGroupBy<T>(
   const valuesContainer: any[] = [];
 
   source.forEach(t => {
-    let index = indexKey(t);
+    const index = indexKey(t);
     const value = valueKey(t);
 
     if (!(index instanceof Array)) {
@@ -114,9 +114,7 @@ export function arrayGroupBy<T>(
 
     container.push(value);
   });
-  if (!!valuesFilter) {
-    valuesContainer.forEach(valuesFilter);
-  }
+  if (!!valuesFilter) valuesContainer.forEach(valuesFilter);
   return result;
 }
 
@@ -142,37 +140,37 @@ export function sleep(timeout: number) {
   });
 }
 
-const ws = [
+const WEEK_NAMES = [
   ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 ];
-const ms = [
+const MONTH_NAMES = [
   ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', ''],
   ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', ''],
 ];
 
-const valueGetters : Record<string, (date:Date) => string | number> = {
-  'dddd': date => ws[0][date.getDay()],
-  'ddd': date => ws[1][date.getDay()],
-  'MMMM': date => ms[0][date.getMonth()],
-  'MMM': date => ms[1][date.getMonth()],
-  'yyyy': date => date.getFullYear(),
-  'M': date => date.getMonth() + 1,
-  'MM': date => ('0' + (date.getMonth() + 1)).slice(-2),
-  'd': date => date.getDate(),
-  'dd': date => ('0' + date.getDate()).slice(-2),
-  'HH': date => ('0' + date.getHours()).slice(-2),
-  'h': date => date.getHours(),
-  'm': date => date.getMinutes(),
-  'mm': date => ('0' + date.getMinutes()).slice(-2),
-  's': date => date.getSeconds(),
-  'ss': date => ('0' + date.getSeconds()).slice(-2),
-  'tttt': date => date.getMilliseconds(),
+const valueGetters: Record<string, (date: Date) => string | number> = {
+  dddd: date => WEEK_NAMES[0][date.getDay()],
+  ddd: date => WEEK_NAMES[1][date.getDay()],
+  MMMM: date => MONTH_NAMES[0][date.getMonth()],
+  MMM: date => MONTH_NAMES[1][date.getMonth()],
+  yyyy: date => date.getFullYear(),
+  M: date => date.getMonth() + 1,
+  MM: date => ('0' + (date.getMonth() + 1)).slice(-2),
+  d: date => date.getDate(),
+  dd: date => ('0' + date.getDate()).slice(-2),
+  HH: date => ('0' + date.getHours()).slice(-2),
+  h: date => date.getHours(),
+  m: date => date.getMinutes(),
+  mm: date => ('0' + date.getMinutes()).slice(-2),
+  s: date => date.getSeconds(),
+  ss: date => ('0' + date.getSeconds()).slice(-2),
+  tttt: date => date.getMilliseconds(),
 };
 
 export const formatDateTime = (format: string, dateTime: any = undefined) => {
   if (dateTime && !(dateTime instanceof Date)) return dateTime;
   const regexp = /(yyyy|mmmm|mmm|mm|dddd|ddd|dd|hh|ss|tttt|m|d|h|s)/gi;
   dateTime = dateTime || new Date();
-  return format.replace(regexp, (diff: string) => (valueGetters[diff] || ((date) => diff))(dateTime).toString());
+  return format.replace(regexp, (diff: string) => (valueGetters[diff] || (date => diff))(dateTime).toString());
 };
