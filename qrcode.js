@@ -584,27 +584,26 @@ const QRCode = function (typeNumber, eccLevel) {
     _typeNumber = getTypeNumber2(_data, _typeNumber);
     makeImpl(false, qrcode.useBestMaskPattern ? getBestMaskPattern() : 0);
   };
-  qrcode.getBase64 = function (w, C, B) {
-    C = C || 2;
-    B = B || 3;
-    qrcode.addData(w);
+  qrcode.getBase64 = function (data, size, padding) {
+    size = size || 2;
+    padding = padding || 3;
+    qrcode.addData(data);
     qrcode.make();
-    const D = qrcode.getModuleCount();
-    const E = D * C + 2 * B;
-    const A = [];
-    const x = BitmapImage(E, E);
-    for (let y = 0; y < E; y++) {
-      for (let z = 0; z < E; z++) {
-        if (y < B || y >= E - B || z < B || z >= E - B) {
-          x.Pixel(y, z, 16777215);
+    const moduleCount = qrcode.getModuleCount();
+    const width = moduleCount * size + 2 * padding;
+    const image = BitmapImage(width, width);
+    for (let y = 0; y < width; y++) {
+      for (let z = 0; z < width; z++) {
+        if (y < padding || y >= width - padding || z < padding || z >= width - padding) {
+          image.Pixel(y, z, 16777215);
         } else {
-          const F = Math.floor((y - B) / C);
-          const G = Math.floor((z - B) / C);
-          x.Pixel(y, z, qrcode.isDark(G, F) ? 0 : 16777215);
+          const F = Math.floor((y - padding) / size);
+          const G = Math.floor((z - padding) / size);
+          image.Pixel(y, z, qrcode.isDark(G, F) ? 0 : 16777215);
         }
       }
     }
-    return Base64.encode(x.flush());
+    return Base64.encode(image.flush());
   };
   return qrcode;
 };
