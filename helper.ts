@@ -174,3 +174,23 @@ export const formatDateTime = (format: string, dateTime: any = undefined) => {
   dateTime = dateTime || new Date();
   return format.replace(regexp, (diff: string) => (valueGetters[diff] || (date => diff))(dateTime).toString());
 };
+
+export function arrayUnique(items: any[], keySelector: ((item: any) => any) | null | string = null) {
+  if (!keySelector) keySelector = (item: any) => item;
+  else if (typeof keySelector === 'string')
+    keySelector = (
+      key => (item: any) =>
+        item[key]
+    )(keySelector);
+
+  const cached: Record<string, boolean> = {};
+  const results: any[] = [];
+
+  items.forEach(item => {
+    const key = keySelector(item);
+    if (cached[key]) return;
+    cached[key] = true;
+    results.push(key);
+  });
+  return results;
+}
