@@ -88,11 +88,13 @@ export function arrayGroupBy<T>(
   source: Array<T>,
   indexKey: (t: T) => any,
   valueKey: (t: T) => any = (t: T) => t,
-  valuesFilter: ((value: any, index: number, array: any[]) => void) | undefined = undefined
-): Record<any, Array<any>> {
+  valuesFilter: ((value: any, key: string, result: Record<any, Array<any>>) => void) | undefined = undefined
+): Record<any, Array<any>> | Record<any, Record<any, Array<any>>> {
   const result: Record<any, Array<any>> = {};
 
   const valuesContainer: any[] = [];
+
+  const keyOfIndex: string[] = [];
 
   source.forEach(t => {
     const index = indexKey(t);
@@ -101,7 +103,10 @@ export function arrayGroupBy<T>(
     if (!(index instanceof Array)) {
       if (!result[index]) {
         result[index] = [];
-        if (!!valuesFilter) valuesContainer.push(result[index]);
+        if (!!valuesFilter) {
+          keyOfIndex[valuesContainer.length] = index;
+          valuesContainer.push(result[index]);
+        }
       }
       result[index].push(value);
       return;
@@ -110,12 +115,42 @@ export function arrayGroupBy<T>(
     if (index.length === 0 || index.length > 2) throw new Error('最多支持二级分组');
 
     const container = findArrayOfContainer(result, index);
-    if (!!valuesFilter && !valuesContainer.includes(container)) valuesContainer.push(container);
+    if (!!valuesFilter && !valuesContainer.includes(container)) {
+      keyOfIndex[valuesContainer.length] = index.join('.');
+      valuesContainer.push(container);
+    }
 
     container.push(value);
   });
-  if (!!valuesFilter) valuesContainer.forEach(valuesFilter);
+  if (!!valuesFilter)
+    valuesContainer.forEach((t, index) => {
+      valuesFilter(t, keyOfIndex[index], result);
+    });
   return result;
+}
+
+export function arrayGroupByToArray<T>(
+  source: Array<T>,
+  indexKey: (t: T) => any,
+  valueKey: (t: T) => any = (t: T) => t
+): { key: string; items: T[] }[] {
+  const arrayResult: { key: string; items: T[] }[] = [];
+  const arrayResultIndexMap: Record<any, number> = {};
+
+  source.forEach(t => {
+    const index = indexKey(t);
+    const value = valueKey(t);
+
+    if (!arrayResultIndexMap.hasOwnProperty(index)) {
+      arrayResultIndexMap[index] = arrayResult.length;
+      arrayResult.push({
+        key: index,
+        items: [],
+      });
+    }
+    arrayResult[arrayResultIndexMap[index]].items.push(value);
+  });
+  return arrayResult;
 }
 
 export function deepClone<T>(source: T): T {
@@ -140,40 +175,42 @@ export function sleep(timeout: number) {
   });
 }
 
-const WEEK_NAMES = [
-  ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-  ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-];
-const MONTH_NAMES = [
-  ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', ''],
-  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', ''],
-];
+export const formatDateTime: (format: string, dateTime: any) => string = (() => {
+  const WEEK_NAMES = [
+    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ];
+  const MONTH_NAMES = [
+    ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', ''],
+    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', ''],
+  ];
 
-const valueGetters: Record<string, (date: Date) => string | number> = {
-  dddd: date => WEEK_NAMES[0][date.getDay()],
-  ddd: date => WEEK_NAMES[1][date.getDay()],
-  MMMM: date => MONTH_NAMES[0][date.getMonth()],
-  MMM: date => MONTH_NAMES[1][date.getMonth()],
-  yyyy: date => date.getFullYear(),
-  M: date => date.getMonth() + 1,
-  MM: date => ('0' + (date.getMonth() + 1)).slice(-2),
-  d: date => date.getDate(),
-  dd: date => ('0' + date.getDate()).slice(-2),
-  HH: date => ('0' + date.getHours()).slice(-2),
-  h: date => date.getHours(),
-  m: date => date.getMinutes(),
-  mm: date => ('0' + date.getMinutes()).slice(-2),
-  s: date => date.getSeconds(),
-  ss: date => ('0' + date.getSeconds()).slice(-2),
-  tttt: date => date.getMilliseconds(),
-};
+  const valueGetters: Record<string, (date: Date) => string | number> = {
+    dddd: date => WEEK_NAMES[0][date.getDay()],
+    ddd: date => WEEK_NAMES[1][date.getDay()],
+    MMMM: date => MONTH_NAMES[0][date.getMonth()],
+    MMM: date => MONTH_NAMES[1][date.getMonth()],
+    yyyy: date => date.getFullYear(),
+    M: date => date.getMonth() + 1,
+    MM: date => ('0' + (date.getMonth() + 1)).slice(-2),
+    d: date => date.getDate(),
+    dd: date => ('0' + date.getDate()).slice(-2),
+    HH: date => ('0' + date.getHours()).slice(-2),
+    h: date => date.getHours(),
+    m: date => date.getMinutes(),
+    mm: date => ('0' + date.getMinutes()).slice(-2),
+    s: date => date.getSeconds(),
+    ss: date => ('0' + date.getSeconds()).slice(-2),
+    tttt: date => date.getMilliseconds(),
+  };
 
-export const formatDateTime = (format: string, dateTime: any = undefined) => {
-  if (dateTime && !(dateTime instanceof Date)) return dateTime;
-  const regexp = /(yyyy|mmmm|mmm|mm|dddd|ddd|dd|hh|ss|tttt|m|d|h|s)/gi;
-  dateTime = dateTime || new Date();
-  return format.replace(regexp, (diff: string) => (valueGetters[diff] || (date => diff))(dateTime).toString());
-};
+  return (format: string, dateTime: any = undefined) => {
+    if (dateTime && !(dateTime instanceof Date)) return dateTime;
+    const regexp = /(yyyy|mmmm|mmm|mm|dddd|ddd|dd|hh|ss|tttt|m|d|h|s)/gi;
+    dateTime = dateTime || new Date();
+    return format.replace(regexp, (diff: string) => (valueGetters[diff] || (date => diff))(dateTime).toString());
+  };
+})();
 
 export function arrayUnique(items: any[], keySelector: ((item: any) => any) | null | string = null) {
   if (!keySelector) keySelector = (item: any) => item;
